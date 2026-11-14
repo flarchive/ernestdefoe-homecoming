@@ -2,13 +2,13 @@
 
 > **Read-only archive of released versions of ernestdefoe/homecoming.** Not for installation: use [Packagist](https://packagist.org/packages/ernestdefoe/homecoming) or the [upstream repository](https://github.com/ernestdefoe/homecoming).
 
-**1** versions archived · Latest: [`1.0.0`](https://github.com/flarchive/ernestdefoe-homecoming/tree/archive/v1.0.0) · License: `MIT` · Flarum: `^2.0`
+**0** versions archived · Latest: [`1.1.0`](https://github.com/flarchive/ernestdefoe-homecoming/tree/archive/v1.1.0) · License: `MIT` · Flarum: `^2.0`
 
 ## Archived Versions
 
 | Version | Released | Flarum | Source |
 |---|---|---|---|
-| `1.0.0` | 2026-11-13 | `^2.0` | [Browse](https://github.com/flarchive/ernestdefoe-homecoming/tree/archive/v1.0.0) |
+| — | — | — | — |
 
 Catalog entry: [packages/ernestdefoe-homecoming.json](https://github.com/flarchive/archive-index/blob/main/packages/ernestdefoe-homecoming.json)
 
