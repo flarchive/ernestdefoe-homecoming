@@ -1,0 +1,147 @@
+import app from 'flarum/forum/app';
+import Icon from 'flarum/common/components/Icon';
+import Link from 'flarum/common/components/Link';
+import type Mithril from 'mithril';
+import type { Dashboard } from '../store';
+import { refresh } from '../store';
+import { canLocate, climb, count, degrees, links, locating, t, tText, useMyLocation, weatherIcon, condition, type Pill } from './util';
+
+/** The rank or group pill, in the group's colour when it has one. */
+export function PillBadge(p: Pill | null, small = false): Mithril.Children {
+  if (!p) return null;
+  return (
+    <span
+      className={`Homecoming-pill${small ? ' Homecoming-pill--small' : ''}`}
+      style={p.color ? { '--homecoming-pill': p.color, '--homecoming-pill-text': textOn(p.color) } : undefined}
+    >
+      {p.icon ? <Icon name={p.icon} /> : null}
+      <span>{p.name}</span>
+    </span>
+  );
+}
+
+/** Dark or light text, whichever reads on an admin-chosen group colour (light groups exist). */
+function textOn(color: string): string {
+  const hex = color.replace('#', '');
+  const full = hex.length === 3 ? hex.replace(/./g, (c) => c + c) : hex;
+  if (!/^[0-9a-f]{6}$/i.test(full)) return '#fff';
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(full.slice(i, i + 2), 16));
+  return (r * 299 + g * 587 + b * 114) / 1000 >= 150 ? '#111' : '#fff';
+}
+
+/** "64°F, partly cloudy in Portland", or nothing. */
+/** The weather, with anything passed in kept on the same line (the location button never wraps alone). */
+export function WeatherLine(d: Dashboard | null, after: Mithril.Children = null): Mithril.Children {
+  if (!d?.weather || !d.place) return null;
+  const w = d.weather;
+  return (
+    <span className="Homecoming-weather">
+      <Icon name={weatherIcon(w.code, w.day)} />
+      <span>{t('weather.line', { temp: degrees(w.temp), condition: tText(`weather.${condition(w.code)}`), place: shortPlace(d.place.label) })}</span>
+      {after}
+    </span>
+  );
+}
+
+export function shortPlace(label: string): string {
+  return label.split(',')[0].trim() || tText('weather.your_location');
+}
+
+/** After a new place: ask now, and again once the background fetch has had time to bring its forecast. */
+export function refreshPlace(): void {
+  refresh();
+  setTimeout(refresh, 5000);
+}
+
+/**
+ * "Use my location": an icon beside the weather, or a small text button where
+ * there is no weather yet. Never asks on its own.
+ */
+export function LocateButton(d: Dashboard | null): Mithril.Children {
+  if (!canLocate() || !d) return null;
+  const label = tText('weather.use_location');
+  const icon = <Icon name={locating.busy ? 'fas fa-spinner fa-spin' : 'fas fa-location-crosshairs'} />;
+  return d.weather && d.place ? (
+    <button
+      type="button"
+      className="Homecoming-locate"
+      aria-label={label}
+      title={label}
+      disabled={locating.busy}
+      onclick={() => useMyLocation(refreshPlace)}
+    >
+      {icon}
+    </button>
+  ) : (
+    <button type="button" className="Homecoming-locate Homecoming-locate--text" disabled={locating.busy} onclick={() => useMyLocation(refreshPlace)}>
+      {icon}
+      <span>{t('weather.for_my_location')}</span>
+    </button>
+  );
+}
+
+/** Unread discussions and notifications, as links. */
+export function Counts(d: Dashboard | null, variant: 'tiles' | 'rows'): Mithril.Children {
+  const user = app.session.user!;
+  const unread = d ? d.unread : null;
+  const notes = Number((user as any).unreadNotificationCount?.() ?? 0);
+
+  if (variant === 'rows') {
+    return (
+      <nav className="Homecoming-rows" aria-label={tText('unread_short')}>
+        <Link className="Homecoming-row" href={links.unread()}>
+          <Icon name="far fa-comments" />
+          <span className="Homecoming-rowLabel">{t('unread_short')}</span>
+          <span className="Homecoming-badge">{unread === null ? '–' : count(unread)}</span>
+        </Link>
+        <Link className="Homecoming-row" href={links.notifications()}>
+          <Icon name="far fa-bell" />
+          <span className="Homecoming-rowLabel">{t('notifications_short')}</span>
+          <span className="Homecoming-badge">{count(notes)}</span>
+        </Link>
+      </nav>
+    );
+  }
+
+  return (
+    <nav className="Homecoming-tiles" aria-label={tText('unread_short')}>
+      <Link className="Homecoming-tile" href={links.unread()}>
+        <span className="Homecoming-tileCount">
+          <span className="Homecoming-dot" aria-hidden="true" />
+          {unread === null ? '–' : count(unread)}
+        </span>
+        <span className="Homecoming-tileLabel">{t('unread', { count: unread ?? 0 })}</span>
+      </Link>
+      <Link className="Homecoming-tile" href={links.notifications()}>
+        <span className="Homecoming-tileCount">
+          <Icon name="far fa-bell" />
+          {count(notes)}
+        </span>
+        <span className="Homecoming-tileLabel">{t('notifications', { count: notes })}</span>
+      </Link>
+    </nav>
+  );
+}
+
+/** The bar and "160 more to Veteran". Nothing without a points extension. */
+export function ClimbBar(d: Dashboard | null): Mithril.Children {
+  const c = climb(d?.progress ?? null);
+  if (!c) return null;
+  return (
+    <div className="Homecoming-climb">
+      <div
+        className="Homecoming-bar"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={c.pct}
+        aria-label={c.next ? tText('progress_label', { rank: c.next }) : tText('top_rank')}
+      >
+        <div className="Homecoming-barFill" style={{ width: `${c.pct}%` }} />
+      </div>
+      <div className="Homecoming-climbText">
+        {c.next ? t('to_next', { count: count(c.remaining, Infinity), rank: <strong>{c.next}</strong> }) : t('top_rank')}
+      </div>
+    </div>
+  );
+}
